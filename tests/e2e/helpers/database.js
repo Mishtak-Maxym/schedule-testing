@@ -2,9 +2,17 @@ const { Pool } = require('pg');
 
 const connectionString = process.env.DATABASE_URL;
 const pool = connectionString ? new Pool({ connectionString }) : null;
+const roomTypeTable = process.env.ROOM_TYPE_TABLE || 'room_type';
 
 function hasDatabase() {
   return Boolean(pool);
+}
+
+function safeTableName(tableName) {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
+    throw new Error('Unsafe table name. Use only letters, numbers and underscore.');
+  }
+  return tableName;
 }
 
 async function query(sql, params = []) {
@@ -16,27 +24,31 @@ async function query(sql, params = []) {
 }
 
 async function createRoomTypeFixture(name, description = 'E2E SQL fixture') {
+  const table = safeTableName(roomTypeTable);
   const rows = await query(
-    'INSERT INTO room_type (name, description) VALUES ($1, $2) RETURNING id, name, description',
+    `INSERT INTO ${table} (name, description) VALUES ($1, $2) RETURNING id, name, description`,
     [name, description]
   );
   return rows[0];
 }
 
 async function findRoomTypeByName(name) {
+  const table = safeTableName(roomTypeTable);
   const rows = await query(
-    'SELECT id, name, description FROM room_type WHERE name = $1',
+    `SELECT id, name, description FROM ${table} WHERE name = $1`,
     [name]
   );
   return rows[0] || null;
 }
 
 async function deleteRoomTypeByName(name) {
-  await query('DELETE FROM room_type WHERE name = $1', [name]);
+  const table = safeTableName(roomTypeTable);
+  await query(`DELETE FROM ${table} WHERE name = $1`, [name]);
 }
 
 async function cleanupRoomTypes(prefix = 'E2E_ROOM_TYPE_') {
-  await query('DELETE FROM room_type WHERE name LIKE $1', [`${prefix}%`]);
+  const table = safeTableName(roomTypeTable);
+  await query(`DELETE FROM ${table} WHERE name LIKE $1`, [`${prefix}%`]);
 }
 
 async function closeDatabase() {
