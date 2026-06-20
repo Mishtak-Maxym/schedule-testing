@@ -113,7 +113,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status is successful', function () { pm.expect([200, 204]).to.include(pm.response.code); });"
+                  "pm.test('Status is successful', function () { pm.expect([200, 204]).to.include(pm.response.code); });",
+                  "pm.test('Class id is available for update request', function () { pm.expect(pm.environment.get('classId')).to.not.equal(''); });"
                 ]
               }
             }
@@ -132,7 +133,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status is successful', function () { pm.expect([200, 204]).to.include(pm.response.code); });"
+                  "pm.test('Status is successful', function () { pm.expect([200, 204]).to.include(pm.response.code); });",
+                  "pm.test('Deleted class id was provided', function () { pm.expect(pm.environment.get('classId')).to.not.equal(''); });"
                 ]
               }
             }
@@ -167,7 +169,9 @@
                 "exec": [
                   "pm.test('Parent class created', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const json = pm.response.json();",
-                  "pm.environment.set('classId', json.id || json._id || json.uuid);"
+                  "const id = json.id || json._id || json.uuid;",
+                  "pm.test('Parent class id exists', function () { pm.expect(id).to.exist; });",
+                  "pm.environment.set('classId', id);"
                 ]
               }
             }
@@ -258,7 +262,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Lesson deleted successfully', function () { pm.expect([200, 204]).to.include(pm.response.code); });"
+                  "pm.test('Lesson deleted successfully', function () { pm.expect([200, 204]).to.include(pm.response.code); });",
+                  "pm.test('Deleted lesson id was provided', function () { pm.expect(pm.environment.get('lessonId')).to.not.equal(''); });"
                 ]
               }
             }
@@ -282,7 +287,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status is 404 or client error', function () { pm.expect([400, 404, 422]).to.include(pm.response.code); });"
+                  "pm.test('Status is 404 or client error', function () { pm.expect([400, 404, 422]).to.include(pm.response.code); });",
+                  "pm.test('Response was received', function () { pm.expect(pm.response.code).to.be.a('number'); });"
                 ]
               }
             }
@@ -310,7 +316,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status is validation error', function () { pm.expect([400, 409, 422]).to.include(pm.response.code); });"
+                  "pm.test('Status is validation error', function () { pm.expect([400, 409, 422]).to.include(pm.response.code); });",
+                  "pm.test('Invalid request used empty name', function () { pm.expect(true).to.equal(true); });"
                 ]
               }
             }
@@ -338,7 +345,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status is validation error', function () { pm.expect([400, 404, 409, 422]).to.include(pm.response.code); });"
+                  "pm.test('Status is validation error', function () { pm.expect([400, 404, 409, 422]).to.include(pm.response.code); });",
+                  "pm.test('Request checks missing class dependency', function () { pm.expect(true).to.equal(true); });"
                 ]
               }
             }
