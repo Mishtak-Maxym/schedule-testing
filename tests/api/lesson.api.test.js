@@ -8,6 +8,7 @@ const {
   expectSuccessStatus,
   expectClientErrorStatus
 } = require('./apiClient');
+const { isDbEnabled, findLessonById } = require('./dbClient');
 
 describe('Lesson API - additional dependent resource', () => {
   let parentClassId;
@@ -29,7 +30,7 @@ describe('Lesson API - additional dependent resource', () => {
     expect(Array.isArray(response.data) || Array.isArray(response.data?.content) || Array.isArray(response.data?.data)).toBe(true);
   });
 
-  test('POST create lesson with existing class dependency succeeds', async () => {
+  test('POST create lesson with existing class dependency succeeds and stores it in database', async () => {
     const payload = lessonPayload(parentClassId);
 
     const response = await client.post(lessonPath, payload);
@@ -37,6 +38,11 @@ describe('Lesson API - additional dependent resource', () => {
 
     expectSuccessStatus(response.status);
     expect(createdLessonId).toBeTruthy();
+
+    if (isDbEnabled()) {
+      const dbLesson = await findLessonById(createdLessonId);
+      expect(dbLesson).not.toBeNull();
+    }
   });
 
   test('GET lesson by id returns created lesson', async () => {
