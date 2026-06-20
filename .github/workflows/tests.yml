@@ -1,0 +1,167 @@
+name: Schedule Testing
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit tests / Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Run frontend Jest unit tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Run frontend coverage
+        working-directory: frontend
+        run: npm run test:coverage
+
+      - name: Upload unit coverage artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-coverage-node-${{ matrix.node-version }}
+          path: frontend/coverage
+          if-no-files-found: warn
+
+  api-tests:
+    name: API tests / Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Start mock API for CI
+        run: |
+          npm run start:mock-api > mock-api.log 2>&1 &
+          echo $! > mock-api.pid
+          for i in {1..20}; do
+            if curl -s http://localhost:8080/health > /dev/null; then
+              echo "Mock API is ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Mock API did not start"
+          cat mock-api.log
+          exit 1
+
+      - name: Run Jest API tests
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p reports/api
+          npm run test:api 2>&1 | tee reports/api/jest-api.log
+
+      - name: Run Postman/Newman tests
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p reports/postman
+          npm run test:postman 2>&1 | tee reports/postman/newman.log
+
+      - name: Upload API test artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-test-reports-node-${{ matrix.node-version }}
+          path: |
+            reports/api
+            reports/postman
+            mock-api.log
+          if-no-files-found: warn
+
+  e2e-tests:
+    name: Playwright E2E / ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Start mock web app for CI
+        run: |
+          npm run start:mock-web > mock-web.log 2>&1 &
+          echo $! > mock-web.pid
+          for i in {1..20}; do
+            if curl -s http://localhost:3000/schedule > /dev/null; then
+              echo "Mock web app is ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Mock web app did not start"
+          cat mock-web.log
+          exit 1
+
+      - name: Run Playwright E2E tests
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          E2E_LOGIN_PATH: /login
+          E2E_SCHEDULE_PATH: /schedule
+          E2E_ROOM_TYPE_PATH: /room-types
+          E2E_LESSON_NAME: Test lesson
+          E2E_TIME_SLOT: Monday 09:00
+        run: npx playwright test --project=${{ matrix.browser }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: |
+            playwright-report
+            test-results
+            mock-web.log
+          if-no-files-found: warn
