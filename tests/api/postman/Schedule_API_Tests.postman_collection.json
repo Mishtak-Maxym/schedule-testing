@@ -1,0 +1,350 @@
+{
+  "info": {
+    "name": "Schedule API Tests",
+    "description": "Lab 4 Postman collection for schedule-testing. Variant 1: main resource Class, additional dependent resource Lesson.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.environment.set('uniqueName', Date.now().toString());"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Class CRUD",
+      "item": [
+        {
+          "name": "GET all classes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}{{classPath}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response body exists', function () { pm.expect(pm.response.text()).to.not.equal(''); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST create class",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QA-Class-{{uniqueName}}\",\n  \"description\": \"Created from Postman test\"\n}"
+            },
+            "url": "{{baseUrl}}{{classPath}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "const id = json.id || json._id || json.uuid;",
+                  "pm.test('Created class has id', function () { pm.expect(id).to.exist; });",
+                  "pm.environment.set('classId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET class by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}{{classPath}}/{{classId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Class id is returned', function () { const json = pm.response.json(); pm.expect(json.id || json._id || json.uuid).to.exist; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT update class",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QA-Class-Updated-{{uniqueName}}\",\n  \"description\": \"Updated from Postman test\"\n}"
+            },
+            "url": "{{baseUrl}}{{classPath}}/{{classId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is successful', function () { pm.expect([200, 204]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE class",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}{{classPath}}/{{classId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is successful', function () { pm.expect([200, 204]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Lesson dependent resource",
+      "item": [
+        {
+          "name": "POST create parent class for lesson",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QA-Parent-Class-{{uniqueName}}\",\n  \"description\": \"Parent class for lesson tests\"\n}"
+            },
+            "url": "{{baseUrl}}{{classPath}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Parent class created', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('classId', json.id || json._id || json.uuid);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET all lessons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}{{lessonPath}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Lessons response body exists', function () { pm.expect(pm.response.text()).to.not.equal(''); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST create lesson",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QA-Lesson-{{uniqueName}}\",\n  \"title\": \"QA-Lesson-{{uniqueName}}\",\n  \"subject\": \"API Testing\",\n  \"classId\": \"{{classId}}\"\n}"
+            },
+            "url": "{{baseUrl}}{{lessonPath}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lesson created', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "const id = json.id || json._id || json.uuid;",
+                  "pm.test('Created lesson has id', function () { pm.expect(id).to.exist; });",
+                  "pm.environment.set('lessonId', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET lesson by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}{{lessonPath}}/{{lessonId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Lesson id is returned', function () { const json = pm.response.json(); pm.expect(json.id || json._id || json.uuid).to.exist; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE lesson",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}{{lessonPath}}/{{lessonId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lesson deleted successfully', function () { pm.expect([200, 204]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Negative scenarios",
+      "item": [
+        {
+          "name": "GET non-existing class returns 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}{{classPath}}/999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404 or client error', function () { pm.expect([400, 404, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST class with empty name returns validation error",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"description\": \"Invalid class\"\n}"
+            },
+            "url": "{{baseUrl}}{{classPath}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is validation error', function () { pm.expect([400, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST lesson without class dependency returns error",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Invalid Lesson\",\n  \"title\": \"Invalid Lesson\",\n  \"subject\": \"API Testing\",\n  \"classId\": null\n}"
+            },
+            "url": "{{baseUrl}}{{lessonPath}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is validation error', function () { pm.expect([400, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
