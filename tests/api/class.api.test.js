@@ -6,6 +6,7 @@ const {
   expectSuccessStatus,
   expectClientErrorStatus
 } = require('./apiClient');
+const { isDbEnabled, findClassById } = require('./dbClient');
 
 describe('Class API - main resource CRUD', () => {
   let createdClassId;
@@ -19,7 +20,7 @@ describe('Class API - main resource CRUD', () => {
     expect(Array.isArray(response.data) || Array.isArray(response.data?.content) || Array.isArray(response.data?.data)).toBe(true);
   });
 
-  test('POST create returns created class with identifier', async () => {
+  test('POST create returns created class with identifier and stores it in database', async () => {
     const payload = classPayload();
 
     const response = await client.post(classPath, payload);
@@ -27,6 +28,11 @@ describe('Class API - main resource CRUD', () => {
 
     expectSuccessStatus(response.status);
     expect(createdClassId).toBeTruthy();
+
+    if (isDbEnabled()) {
+      const dbClass = await findClassById(createdClassId);
+      expect(dbClass).not.toBeNull();
+    }
   });
 
   test('GET by id returns existing class after create', async () => {
@@ -36,7 +42,7 @@ describe('Class API - main resource CRUD', () => {
     expect(getEntityId(response)).toBeTruthy();
   });
 
-  test('PUT update changes existing class data', async () => {
+  test('PUT update changes existing class data and keeps row in database', async () => {
     const updatedPayload = classPayload({
       name: `QA-updated-${Date.now()}`,
       description: 'Updated by Jest API test'
@@ -47,6 +53,11 @@ describe('Class API - main resource CRUD', () => {
     expectSuccessStatus(response.status);
     if (response.status !== 204) {
       expect(response.data).toBeDefined();
+    }
+
+    if (isDbEnabled()) {
+      const dbClass = await findClassById(createdClassId);
+      expect(dbClass).not.toBeNull();
     }
   });
 
@@ -71,7 +82,7 @@ describe('Class API - main resource CRUD', () => {
     expectClientErrorStatus(response.status);
   });
 
-  test('DELETE removes existing class', async () => {
+  test('DELETE removes existing class and removes it from database', async () => {
     const createResponse = await client.post(classPath, classPayload({ name: `QA-delete-${Date.now()}` }));
     classForDeleteId = getEntityId(createResponse);
 
@@ -81,6 +92,11 @@ describe('Class API - main resource CRUD', () => {
     const deleteResponse = await client.delete(`${classPath}/${classForDeleteId}`);
 
     expectSuccessStatus(deleteResponse.status);
+
+    if (isDbEnabled()) {
+      const dbClass = await findClassById(classForDeleteId);
+      expect(dbClass).toBeNull();
+    }
   });
 
   test('GET deleted class returns 404 or client error', async () => {
