@@ -9,6 +9,8 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
+    "start:mock-api": "node tests/api/mockScheduleApi.js",
+    "start:mock-web": "node tests/e2e/mockWebApp.js",
     "test": "npm run test:api"
   },
   "devDependencies": {
