@@ -20,6 +20,7 @@ schedule-testing/
 ├── tests/
 │   └── api/
 │       ├── apiClient.js
+│       ├── dbClient.js
 │       ├── class.api.test.js
 │       ├── lesson.api.test.js
 │       └── postman/
@@ -58,6 +59,8 @@ tests/api/postman/schedule-local.postman_environment.json
 - `lessonId`
 - `uniqueName`
 
+Кожен запит містить мінімум 2 Postman tests у вкладці **Tests**.
+
 ## 3. Postman checks
 
 Колекція містить перевірки для таких сценаріїв:
@@ -95,13 +98,13 @@ tests/api/lesson.api.test.js
 Файл `class.api.test.js` містить 10 тестів:
 
 1. GET all returns successful response.
-2. POST create returns created class with identifier.
+2. POST create returns created class with identifier and stores it in database when DB is configured.
 3. GET by id returns existing class after create.
-4. PUT update changes existing class data.
+4. PUT update changes existing class data and keeps row in database when DB is configured.
 5. GET by id after update still returns the class.
 6. POST create with invalid empty name returns validation error.
 7. GET by non-existing id returns 404 or client error.
-8. DELETE removes existing class.
+8. DELETE removes existing class and removes it from database when DB is configured.
 9. GET deleted class returns 404 or client error.
 10. DELETE non-existing class returns 404 or client error.
 
@@ -110,13 +113,47 @@ tests/api/lesson.api.test.js
 Файл `lesson.api.test.js` містить 6 тестів:
 
 1. GET all lessons returns successful response.
-2. POST create lesson with existing class dependency succeeds.
+2. POST create lesson with existing class dependency succeeds and stores it in database when DB is configured.
 3. GET lesson by id returns created lesson.
 4. POST create lesson with missing class dependency returns client error.
 5. POST create lesson with non-existing class id returns client error.
 6. POST create lesson with empty title returns validation error.
 
-## 5. Запуск
+## 5. Перевірка даних у БД
+
+Для перевірки даних у базі додано файл:
+
+```text
+tests/api/dbClient.js
+```
+
+DB-перевірки працюють тільки якщо перед запуском задано `DATABASE_URL`. Якщо змінна не задана, API-тести запускаються без DB-перевірок.
+
+Приклад запуску з БД:
+
+```bash
+DATABASE_URL=postgres://user:password@localhost:5432/schedule_db npm run test:api
+```
+
+За замовчуванням очікуються такі таблиці та ID-колонки:
+
+```text
+CLASS_TABLE=classes
+CLASS_ID_COLUMN=id
+LESSON_TABLE=lessons
+LESSON_ID_COLUMN=id
+```
+
+Якщо у вашій БД інші назви таблиць або колонок, їх можна передати через змінні:
+
+```bash
+DATABASE_URL=postgres://user:password@localhost:5432/schedule_db \
+CLASS_TABLE=class CLASS_ID_COLUMN=id \
+LESSON_TABLE=lesson LESSON_ID_COLUMN=id \
+npm run test:api
+```
+
+## 6. Запуск
 
 Перед запуском потрібно запустити API локально або змінити `baseUrl` на реальну адресу сервера.
 
@@ -138,7 +175,7 @@ npm run test:api
 npm run test:postman
 ```
 
-## 6. Налаштування endpoint-ів
+## 7. Налаштування endpoint-ів
 
 За замовчуванням використано:
 
@@ -160,7 +197,7 @@ tests/api/postman/schedule-local.postman_environment.json
 BASE_URL=http://localhost:8080 CLASS_PATH=/api/classes LESSON_PATH=/api/lessons npm run test:api
 ```
 
-## 7. Що потрібно додати після запуску
+## 8. Що потрібно додати після запуску
 
 Після запуску тестів потрібно додати скріншоти результатів:
 
@@ -168,6 +205,6 @@ BASE_URL=http://localhost:8080 CLASS_PATH=/api/classes LESSON_PATH=/api/lessons 
 - скріншот виконання Jest + axios API tests;
 - за потреби короткий коментар, які запити пройшли успішно, а які потребували виправлення endpoint-ів.
 
-## 8. Висновок
+## 9. Висновок
 
-Для ЛР №4 підготовлено Postman collection, Postman environment та автоматизовані API-тести для двох ресурсів: `Class` і `Lesson`. Тести покривають CRUD-операції, позитивні сценарії, негативні сценарії, перевірки статус-кодів 400/404 та роботу з залежністю `Lesson` від `Class`.
+Для ЛР №4 підготовлено Postman collection, Postman environment та автоматизовані API-тести для двох ресурсів: `Class` і `Lesson`. Тести покривають CRUD-операції, позитивні сценарії, негативні сценарії, перевірки статус-кодів 400/404, роботу з залежністю `Lesson` від `Class` та додаткову перевірку записів у БД після API-операцій.
